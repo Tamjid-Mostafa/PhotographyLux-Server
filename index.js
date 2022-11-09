@@ -21,6 +21,12 @@ const run = async () => {
     const servicesCollection = await client
       .db("photographylux")
       .collection("services");
+    const packagePriceCollection = await client
+      .db("photographylux")
+      .collection("packagePriceTable");
+    const reviewCollection = await client
+      .db("photographylux")
+      .collection("reviews");
 
     app.get("/services", async (req, res) => {
       const size = Number(req.query.size);
@@ -29,11 +35,33 @@ const run = async () => {
       const services = await cursor.toArray();
       res.send(services);
 
+    app.get("/packagePriceTable", async (req, res) => {
+      const query = {};
+      const cursor = packagePriceCollection.find(query);
+      const packagePrices = await cursor.toArray();
+      res.send(packagePrices);
+    });
+
       app.get("/services/:id", async (req, res) => {
         const id = req.params.id;
         const query = { _id: ObjectId(id) };
         const service = await servicesCollection.findOne(query);
         res.send(service);
+      });
+      app.get("/reviews", async (req, res) => {
+        // console.log(req.query.itemId);
+        let query = {};
+        
+        if(req.query.itemId){
+          query=  {
+            itemId:req.query.itemId
+          }
+        }
+
+        
+        const cursor =  reviewCollection.find(query);
+        const reviews = await cursor.toArray();
+        res.send(reviews);
       });
     });
   } finally {
