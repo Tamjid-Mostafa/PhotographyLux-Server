@@ -17,6 +17,26 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+function verifyJWT(req, res, next){
+  const authHeader = req.headers.authorization;
+  console.log(authHeader);
+
+  if(!authHeader){
+      return res.status(401).send({message: 'unauthorized access'});
+  }
+  const token = authHeader.split(' ')[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded){
+      if(err){
+          return res.status(403).send({message: 'Forbidden access'});
+      }
+      req.decoded = decoded;
+      next();
+  })
+}
+
+
+
 const run = async () => {
   try {
     const servicesCollection = await client
@@ -28,20 +48,31 @@ const run = async () => {
     const reviewCollection = await client
       .db("photographylux")
       .collection("reviews");
+    const foodPhotoCollection = await client
+      .db("photographylux")
+      .collection("foodPhotos");
 
-    app.get("/services", async (req, res) => {
+
+
+    app.post('/jwt', (req,res) => {
+      const user = req.body;
+      // console.log(user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '10h'})
+      res.send({token}) 
+    
+    })
+
+
+
+     /* Create Services  */
+     app.get("/services", async (req, res) => {
       const size = Number(req.query.size);
       const query = {};
       const cursor = servicesCollection.find(query).limit(size);
       const services = await cursor.toArray();
       res.send(services);
 
-      app.get("/packagePriceTable", async (req, res) => {
-        const query = {};
-        const cursor = packagePriceCollection.find(query);
-        const packagePrices = await cursor.toArray();
-        res.send(packagePrices);
-      });
+
 
       app.get("/services/:id", async (req, res) => {
         const id = req.params.id;
@@ -49,8 +80,22 @@ const run = async () => {
         const service = await servicesCollection.findOne(query);
         res.send(service);
       });
-      app.get("/reviews", async (req, res) => {
-        // console.log(req.query.itemId);
+
+
+     app.post("/services", async (req, res) => {
+      const service = req.body;
+      const result = await servicesCollection.insertOne(service);
+      res.send(result);
+    });
+
+  
+
+
+     
+      /* ----REviewes---------- */
+
+      app.get("/reviews",  async (req, res) => {
+
         let query = {};
 
         if (req.query.service_name) {
@@ -63,26 +108,42 @@ const run = async () => {
         const reviews = await cursor.toArray();
         res.send(reviews);
       });
+
+
       app.post("/reviews", async (req, res) => {
         const userReview = req.body;
-        console.log(userReview);
         const result = await reviewCollection.insertOne(userReview);
         res.send(result);
       });
-      app.post("/services", async (req, res) => {
-        const service = req.body;
-        console.log(service);
-        const result = await servicesCollection.insertOne(service);
-        res.send(result);
+
+
+
+     
+
+
+
+ app.get("/packagePriceTable", async (req, res) => {
+        const query = {};
+        const cursor = packagePriceCollection.find(query);
+        const packagePrices = await cursor.toArray();
+        res.send(packagePrices);
       });
 
-      app.get("/my_reviews", async (req, res) => {
-        // console.log(req.query.userEmail);
+
+
+      app.get("/my_reviews",verifyJWT, async (req, res) => {
+
+
+        const decoded = req.decoded;
+        if(decoded.email !== req.query.email){
+          res.status(403).send({message: 'Unauthorized Access'});
+        }
+
         let query = {};
 
-        if (req.query.userEmail) {
+        if (req.query.email) {
           query = {
-            userEmail: req.query.userEmail,
+            email: req.query.email,
           };
         }
 
@@ -112,6 +173,17 @@ const run = async () => {
         const result = await reviewCollection.deleteOne(query);
         res.send(result);
       });
+
+
+
+      app.get("/foodPhotos", async (req, res) => {
+        const query = {};
+        const cursor = foodPhotoCollection.find(query);
+        const foodPhoto = await cursor.toArray();
+        res.send(foodPhoto);
+      });
+
+
     });
   } finally {
   }
