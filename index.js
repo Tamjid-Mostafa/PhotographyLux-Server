@@ -68,6 +68,12 @@ const run = async () => {
         const result = await reviewCollection.insertOne(userReview);
         res.send(result);
       });
+      app.post("/services", async (req, res) => {
+        const service = req.body;
+        console.log(service);
+        const result = await servicesCollection.insertOne(service);
+        res.send(result);
+      });
 
       app.get("/my_reviews", async (req, res) => {
         // console.log(req.query.userEmail);
