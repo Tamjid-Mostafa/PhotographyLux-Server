@@ -66,7 +66,8 @@ const run = async () => {
      app.get("/services", async (req, res) => {
       const size = Number(req.query.size);
       const query = {};
-      const cursor = servicesCollection.find(query).limit(size);
+      const cursor = servicesCollection.find(query).sort({_id:-1}).limit(size);
+      
       const services = await cursor.toArray();
       res.send(services);
 
@@ -177,8 +178,8 @@ const run = async () => {
       app.get("/foodPhotos", async (req, res) => {
         const query = {};
         const cursor = foodPhotoCollection.find(query);
-        const foodPhoto = await cursor.toArray();
-        res.send(foodPhoto);
+        const foodPhotos = await cursor.toArray();
+        res.send(foodPhotos);
       });
 
 
